@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aim Trainer Pro - Reaction Time Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="game-title">
+                <i class="fas fa-crosshairs"></i>
+                <h1>Aim Trainer Pro</h1>
+                <i class="fas fa-bolt"></i>
+            </div>
+            <p class="subtitle">Test your aim and reaction time. Hit targets quickly to improve your rating!</p>
+        </header>
+        
+        <div class="game-area">
+            <div class="game-container">
+                <canvas id="gameCanvas"></canvas>
+                <div class="controls">
+                    <button id="startBtn">
+                        <i class="fas fa-play"></i> Start Game
+                    </button>
+                    <button id="pauseBtn">
+                        <i class="fas fa-pause"></i> Pause
+                    </button>
+                    <button id="resetBtn">
+                        <i class="fas fa-redo"></i> Reset
+                    </button>
+                </div>
+            </div>
+            
+            <div class="stats-container">
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">Reaction Time</div>
+                        <div id="reactionTime" class="stat-value">0 ms</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Targets Hit</div>
+                        <div id="targetsHit" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Accuracy</div>
+                        <div id="accuracy" class="stat-value">0%</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Average Time</div>
+                        <div id="averageTime" class="stat-value">0 ms</div>
+                    </div>
+                </div>
+                
+                <div class="rating-container">
+                    <div class="rating-title">Your Aim Rating</div>
+                    <div id="ratingDisplay">Click Start!</div>
+                    <div class="rating-scale">
+                        <div class="rating-item">Slow<br>&gt;500ms</div>
+                        <div class="rating-item">Average<br>300-500ms</div>
+                        <div class="rating-item">Fast<br>200-300ms</div>
+                        <div class="rating-item">Very Fast<br>150-200ms</div>
+                        <div class="rating-item">Elite<br>&lt;150ms</div>
+                    </div>
+                </div>
+                
+                <div class="reaction-history">
+                    <div class="history-title">Recent Reaction Times</div>
+                    <div id="historyList">
+                        <!-- Reaction times will appear here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h2>How to Play & Rating System</h2>
+            <ul>
+                <li><strong>Click the Start button</strong> to begin the aim training session.</li>
+                <li><strong>Click on targets</strong> as quickly as possible when they appear.</li>
+                <li>Your <strong>reaction time</strong> is measured from when a target appears to when you click it.</li>
+                <li><strong>Accuracy</strong> is calculated based on hits vs. misses.</li>
+                <li>Your <strong>rating</strong> is determined by your average reaction time and accuracy:</li>
+            </ul>
+            <div class="rating-scale">
+                <div class="rating-item">Elite: &lt;150ms with &gt;90% accuracy</div>
+                <div class="rating-item">Very Fast: 150-200ms with &gt;80% accuracy</div>
+                <div class="rating-item">Fast: 200-300ms with &gt;70% accuracy</div>
+                <div class="rating-item">Average: 300-500ms with &gt;60% accuracy</div>
+                <div class="rating-item">Slow: &gt;500ms or &lt;60% accuracy</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
