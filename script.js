@@ -11,6 +11,8 @@ let currentTarget = null;
 let targetAppearTime = 0;
 let gameInterval;
 let targetInterval;
+let targetSize = 'medium'; // small, medium, large
+let mouseX = 0, mouseY = 0;
 
 // Set canvas dimensions
 canvas.width = canvas.offsetWidth;
@@ -26,6 +28,9 @@ window.addEventListener('resize', () => {
 const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
 const resetBtn = document.getElementById('resetBtn');
+const smallBtn = document.getElementById('smallBtn');
+const mediumBtn = document.getElementById('mediumBtn');
+const largeBtn = document.getElementById('largeBtn');
 const reactionTimeEl = document.getElementById('reactionTime');
 const targetsHitEl = document.getElementById('targetsHit');
 const accuracyEl = document.getElementById('accuracy');
@@ -33,44 +38,62 @@ const averageTimeEl = document.getElementById('averageTime');
 const ratingDisplay = document.getElementById('ratingDisplay');
 const historyList = document.getElementById('historyList');
 
-// Target class
+// Target class - Rectangular targets
 class Target {
-    constructor(x, y, radius) {
+    constructor(x, y, width, height) {
         this.x = x;
         this.y = y;
-        this.radius = radius;
+        this.width = width || 80;
+        this.height = height || 50;
         this.color = this.getRandomColor();
         this.hit = false;
+        this.number = Math.floor(Math.random() * 9) + 1; // Random number 1-9
     }
     
     getRandomColor() {
-        const colors = ['#FF5252', '#FF4081', '#E040FB', '#7C4DFF', '#536DFE', '#448AFF', '#40C4FF', '#18FFFF', '#64FFDA', '#69F0AE'];
+        const colors = [
+            '#FF5252', '#FF4081', '#E040FB', '#7C4DFF', 
+            '#536DFE', '#448AFF', '#40C4FF', '#18FFFF', 
+            '#64FFDA', '#69F0AE', '#B2FF59', '#EEFF41'
+        ];
         return colors[Math.floor(Math.random() * colors.length)];
     }
     
     draw() {
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        // Draw rectangle
         ctx.fillStyle = this.color;
-        ctx.fill();
+        ctx.fillRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
         
-        // Inner circle for better visibility
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius * 0.5, 0, Math.PI * 2);
-        ctx.fillStyle = 'white';
-        ctx.fill();
-        
-        // Outer border
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.lineWidth = 2;
+        // Rounded corners
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 4;
         ctx.strokeStyle = 'white';
-        ctx.stroke();
+        ctx.strokeRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+        
+        // Draw number in center
+        ctx.fillStyle = 'white';
+        ctx.font = `bold ${Math.min(this.width, this.height)/2}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.number.toString(), this.x, this.y);
+        
+        // Inner highlight effect
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.fillRect(
+            this.x - this.width/2 + 2, 
+            this.y - this.height/2 + 2, 
+            this.width - 4, 
+            10
+        );
     }
     
-    isClicked(x, y) {
-        const distance = Math.sqrt((x - this.x) ** 2 + (y - this.y) ** 2);
-        return distance <= this.radius;
+    isClicked(clickX, clickY) {
+        return (
+            clickX >= this.x - this.width/2 &&
+            clickX <= this.x + this.width/2 &&
+            clickY >= this.y - this.height/2 &&
+            clickY <= this.y + this.height/2
+        );
     }
 }
 
@@ -139,22 +162,47 @@ function clearIntervals() {
     clearInterval(targetInterval);
 }
 
-// Create a new target
+// Create a new target with size based on difficulty
 function createNewTarget() {
     if (!gameRunning || gamePaused) return;
     
     // Remove any existing target
     targets = [];
     
-    // Create a new target at random position
-    const radius = 25 + Math.random() * 20;
-    const x = radius + Math.random() * (canvas.width - radius * 2);
-    const y = radius + Math.random() * (canvas.height - radius * 2);
+    // Set size based on difficulty
+    let width, height;
+    switch(targetSize) {
+        case 'small':
+            width = 40 + Math.random() * 20;
+            height = 30 + Math.random() * 15;
+            break;
+        case 'large':
+            width = 100 + Math.random() * 40;
+            height = 70 + Math.random() * 30;
+            break;
+        case 'medium':
+        default:
+            width = 60 + Math.random() * 40;
+            height = 40 + Math.random() * 30;
+    }
     
-    const target = new Target(x, y, radius);
+    // Ensure target stays within canvas bounds
+    const x = width/2 + Math.random() * (canvas.width - width);
+    const y = height/2 + Math.random() * (canvas.height - height);
+    
+    const target = new Target(x, y, width, height);
     targets.push(target);
     currentTarget = target;
     targetAppearTime = Date.now();
+}
+
+// Update size buttons
+function updateSizeButtons() {
+    smallBtn.classList.remove('active');
+    mediumBtn.classList.remove('active');
+    largeBtn.classList.remove('active');
+    
+    document.getElementById(`${targetSize}Btn`).classList.add('active');
 }
 
 // Draw everything
@@ -171,6 +219,9 @@ function draw() {
             target.draw();
         }
     });
+    
+    // Draw crosshair
+    drawCrosshair();
     
     // Draw game info on canvas
     drawGameInfo();
@@ -198,6 +249,40 @@ function drawGrid() {
     }
 }
 
+// Draw crosshair
+function drawCrosshair() {
+    if (!gameRunning || gamePaused) return;
+    
+    // Outer circle
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(mouseX, mouseY, 15, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Inner dot
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.beginPath();
+    ctx.arc(mouseX, mouseY, 2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Cross lines
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 1;
+    
+    // Horizontal line
+    ctx.beginPath();
+    ctx.moveTo(mouseX - 10, mouseY);
+    ctx.lineTo(mouseX + 10, mouseY);
+    ctx.stroke();
+    
+    // Vertical line
+    ctx.beginPath();
+    ctx.moveTo(mouseX, mouseY - 10);
+    ctx.lineTo(mouseX, mouseY + 10);
+    ctx.stroke();
+}
+
 // Draw game info on canvas
 function drawGameInfo() {
     if (!gameRunning) {
@@ -211,7 +296,7 @@ function drawGameInfo() {
         
         ctx.font = '20px Arial';
         ctx.fillStyle = '#a0d2eb';
-        ctx.fillText('Hit targets as quickly as possible', canvas.width / 2, canvas.height / 2 + 50);
+        ctx.fillText(`Current target size: ${targetSize.toUpperCase()}`, canvas.width / 2, canvas.height / 2 + 50);
         return;
     }
     
@@ -229,20 +314,19 @@ function drawGameInfo() {
         ctx.fillText('Click RESUME to continue', canvas.width / 2, canvas.height / 2 + 50);
     }
     
-    // Draw hits counter on canvas
-    ctx.font = 'bold 20px Arial';
+    // Draw game stats on canvas
+    ctx.font = 'bold 18px Arial';
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'left';
     ctx.fillText(`Hits: ${hits}`, 20, 30);
     
-    // Draw accuracy on canvas
     const accuracy = totalShots > 0 ? Math.round((hits / totalShots) * 100) : 0;
     ctx.fillText(`Accuracy: ${accuracy}%`, 20, 60);
     
-    // Draw current reaction time if target is visible
+    // Draw current target info if visible
     if (currentTarget && !currentTarget.hit) {
         const timeVisible = Date.now() - targetAppearTime;
-        ctx.fillText(`Current: ${timeVisible}ms`, 20, 90);
+        ctx.fillText(`Target #${currentTarget.number}: ${timeVisible}ms`, 20, 90);
     }
 }
 
@@ -272,6 +356,9 @@ canvas.addEventListener('click', (e) => {
             // Add to history
             addToHistory(reactionTime);
             
+            // Draw hit effect
+            drawHitEffect(x, y, target.color);
+            
             // Update stats
             updateStats();
             updateRating();
@@ -286,12 +373,72 @@ canvas.addEventListener('click', (e) => {
         }
     });
     
-    // If no target was hit, count as miss
+    // If no target was hit
     if (!targetHit) {
+        // Draw miss effect
+        drawMissEffect(x, y);
         updateStats();
         updateRating();
     }
 });
+
+// Track mouse movement for crosshair
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = e.clientX - rect.left;
+    mouseY = e.clientY - rect.top;
+});
+
+// Draw hit effect
+function drawHitEffect(x, y, color) {
+    // Explosion effect
+    const particles = 12;
+    for (let i = 0; i < particles; i++) {
+        const angle = (i / particles) * Math.PI * 2;
+        const speed = 2 + Math.random() * 3;
+        const size = 3 + Math.random() * 4;
+        
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(
+            x + Math.cos(angle) * speed * 5,
+            y + Math.sin(angle) * speed * 5,
+            size, 0, Math.PI * 2
+        );
+        ctx.fill();
+    }
+    
+    // Hit text
+    ctx.fillStyle = '#00FF00';
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('HIT!', x, y - 30);
+}
+
+// Draw miss effect
+function drawMissEffect(x, y) {
+    // Crosshair for miss
+    ctx.strokeStyle = '#FF0000';
+    ctx.lineWidth = 2;
+    
+    // Vertical line
+    ctx.beginPath();
+    ctx.moveTo(x, y - 15);
+    ctx.lineTo(x, y + 15);
+    ctx.stroke();
+    
+    // Horizontal line
+    ctx.beginPath();
+    ctx.moveTo(x - 15, y);
+    ctx.lineTo(x + 15, y);
+    ctx.stroke();
+    
+    // Miss text
+    ctx.fillStyle = '#FF0000';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('MISS!', x, y - 30);
+}
 
 // Update stats display
 function updateStats() {
@@ -335,19 +482,19 @@ function updateRating() {
     
     if (avgReactionTime < 150 && accuracy >= 90) {
         rating = "ELITE";
-        color = "#FFD700"; // Gold
+        color = "#FFD700";
     } else if (avgReactionTime < 200 && accuracy >= 80) {
         rating = "VERY FAST";
-        color = "#00FF00"; // Green
+        color = "#00FF00";
     } else if (avgReactionTime < 300 && accuracy >= 70) {
         rating = "FAST";
-        color = "#4CAF50"; // Light Green
+        color = "#4CAF50";
     } else if (avgReactionTime < 500 && accuracy >= 60) {
         rating = "AVERAGE";
-        color = "#2196F3"; // Blue
+        color = "#2196F3";
     } else {
         rating = "SLOW";
-        color = "#FF5252"; // Red
+        color = "#FF5252";
     }
     
     ratingDisplay.textContent = rating;
@@ -384,9 +531,26 @@ startBtn.addEventListener('click', startGame);
 pauseBtn.addEventListener('click', togglePause);
 resetBtn.addEventListener('click', resetGame);
 
+// Event listeners for size buttons
+smallBtn.addEventListener('click', () => {
+    targetSize = 'small';
+    updateSizeButtons();
+});
+
+mediumBtn.addEventListener('click', () => {
+    targetSize = 'medium';
+    updateSizeButtons();
+});
+
+largeBtn.addEventListener('click', () => {
+    targetSize = 'large';
+    updateSizeButtons();
+});
+
 // Initialize game on load
 window.addEventListener('load', () => {
     initGame();
+    updateSizeButtons();
     
     // Add some sample history items for demonstration
     addToHistory(215);
